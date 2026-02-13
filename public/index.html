@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MODERN PRINT | Price Tracking</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>[x-cloak] { display: none !important; }</style>
+</head>
+<body class="bg-slate-100 font-sans" x-data="calcApp()">
+
+    <nav class="bg-slate-900 text-white p-5 flex justify-between items-center sticky top-0 z-50">
+        <div>
+            <h1 class="text-xl font-black text-yellow-500">MODERN PRINT</h1>
+            <p class="text-[10px] tracking-widest text-slate-400">LARGE FORMAT SERVICE</p>
+        </div>
+        <button @click="showAdminModal = true" class="bg-yellow-600 px-4 py-2 rounded-lg text-xs font-bold uppercase">Admin Dashboard</button>
+    </nav>
+
+    <div class="container mx-auto p-4 max-w-6xl">
+        
+        <div x-show="view === 'calc'" class="max-w-xl mx-auto bg-white rounded-3xl shadow-2xl overflow-hidden mt-6">
+            <div class="bg-yellow-500 p-6 text-center font-bold text-lg">New Price Calculation</div>
+            
+            <div class="p-8 space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <input type="text" x-model="form.customerName" placeholder="Customer Name" class="w-full p-4 bg-slate-50 border rounded-xl outline-none focus:ring-2 focus:ring-yellow-500">
+                    <input type="tel" x-model="form.customerPhone" placeholder="Phone Number" class="w-full p-4 bg-slate-50 border rounded-xl outline-none focus:ring-2 focus:ring-yellow-500">
+                </div>
+
+                <hr>
+
+                <select x-model="form.material" class="w-full p-4 bg-slate-50 border rounded-xl">
+                    <option value="Flexy Banner">Flexy Banner</option>
+                    <option value="SAV Sticker">SAV Sticker</option>
+                    <option value="One Way Vision">One Way Vision</option>
+                    <option value="Reflective Banner">Reflective Banner</option>
+                    <option value="Flag Material">Flag Material</option>
+                </select>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <input type="number" x-model="form.width" placeholder="Width (ft)" class="w-full p-4 bg-slate-50 border rounded-xl">
+                    <input type="number" x-model="form.height" placeholder="Height (ft)" class="w-full p-4 bg-slate-50 border rounded-xl">
+                </div>
+
+                <input type="number" x-model="form.sqftPrice" placeholder="Price per SqFt (GH₵)" class="w-full p-4 bg-slate-50 border rounded-xl">
+
+                <div class="bg-slate-900 text-white p-6 rounded-2xl text-center">
+                    <p class="text-xs text-slate-400 font-bold uppercase">Total Price</p>
+                    <h3 class="text-4xl font-black text-yellow-500">GH₵ <span x-text="calculatePrice()"></span></h3>
+                </div>
+
+                <button @click="savePrint()" class="w-full bg-yellow-500 py-4 rounded-xl font-black text-lg hover:bg-yellow-400">LOG TRANSACTION</button>
+            </div>
+        </div>
+
+        <div x-show="view === 'admin'" x-cloak class="mt-6 space-y-6">
+            <div class="flex justify-between items-center">
+                <h2 class="text-2xl font-black">SALES SUMMARY</h2>
+                <button @click="view = 'calc'" class="text-blue-600 font-bold">← Back to Calculator</button>
+            </div>
+
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-white p-6 rounded-2xl shadow border-l-4 border-yellow-500">
+                    <p class="text-xs font-bold text-slate-500">TODAY</p>
+                    <p class="text-xl font-black">GH₵ <span x-text="stats.daily.toFixed(2)"></span></p>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow border-l-4 border-blue-500">
+                    <p class="text-xs font-bold text-slate-500">WEEKLY</p>
+                    <p class="text-xl font-black">GH₵ <span x-text="stats.weekly.toFixed(2)"></span></p>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow border-l-4 border-green-500">
+                    <p class="text-xs font-bold text-slate-500">MONTHLY</p>
+                    <p class="text-xl font-black">GH₵ <span x-text="stats.monthly.toFixed(2)"></span></p>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow border-l-4 border-purple-500">
+                    <p class="text-xs font-bold text-slate-500">YEARLY</p>
+                    <p class="text-xl font-black">GH₵ <span x-text="stats.yearly.toFixed(2)"></span></p>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-xl overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead class="bg-slate-900 text-white text-xs">
+                        <tr>
+                            <th class="p-4">Customer Info</th>
+                            <th class="p-4">Material</th>
+                            <th class="p-4">Size</th>
+                            <th class="p-4">Price</th>
+                            <th class="p-4">Date/Time</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template x-for="log in stats.logs" :key="log.id">
+                            <tr class="border-b text-sm">
+                                <td class="p-4">
+                                    <div class="font-bold text-slate-800" x-text="log.customerName || 'Walk-in'"></div>
+                                    <div class="text-xs text-blue-600" x-text="log.customerPhone || 'No Phone'"></div>
+                                </td>
+                                <td class="p-4" x-text="log.material"></td>
+                                <td class="p-4 text-slate-500" x-text="log.size"></td>
+                                <td class="p-4 font-bold text-green-700" x-text="'GH₵ ' + log.price.toFixed(2)"></td>
+                                <td class="p-4 text-slate-400 text-xs" x-text="new Date(log.timestamp).toLocaleString()"></td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div x-show="showAdminModal" x-cloak class="fixed inset-0 bg-slate-900/80 backdrop-blur flex items-center justify-center p-4 z-50">
+        <div class="bg-white p-8 rounded-3xl w-full max-w-sm">
+            <h3 class="font-black text-xl mb-4 text-center">Admin Verify</h3>
+            <input type="password" x-model="adminPass" placeholder="Admin Password" class="w-full border-2 p-4 rounded-xl mb-4 text-center text-xl">
+            <button @click="loginAdmin()" class="w-full bg-slate-900 text-white py-4 rounded-xl font-bold">Access Dashboard</button>
+            <button @click="showAdminModal = false" class="w-full mt-2 text-slate-400 text-sm">Cancel</button>
+        </div>
+    </div>
+
+    <script>
+        function calcApp() {
+            return {
+                view: 'calc', showAdminModal: false, adminPass: '',
+                form: { customerName: '', customerPhone: '', material: 'Flexy Banner', width: '', height: '', sqftPrice: '' },
+                stats: { logs: [], daily: 0, weekly: 0, monthly: 0, yearly: 0 },
+                calculatePrice() {
+                    const w = parseFloat(this.form.width) || 0;
+                    const h = parseFloat(this.form.height) || 0;
+                    const s = parseFloat(this.form.sqftPrice) || 0;
+                    let total = (this.form.material === 'SAV Sticker') ? (w * h * s) / 144 : (w * h * s);
+                    return total.toFixed(2);
+                },
+                async savePrint() {
+                    const price = this.calculatePrice();
+                    if(price <= 0 || !this.form.customerName) return alert("Enter Customer Name and Dimensions");
+                    await fetch('/api/print', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ ...this.form, price })
+                    });
+                    alert("Order logged successfully!");
+                    this.form.width = ''; this.form.height = ''; // Clear only sizes for next customer
+                },
+                async loginAdmin() {
+                    const r = await fetch('/api/admin/stats', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ password: this.adminPass })
+                    });
+                    if(r.ok) {
+                        this.stats = await r.json();
+                        this.view = 'admin';
+                        this.showAdminModal = false;
+                    } else { alert("Invalid Password"); }
+                }
+            }
+        }
+    </script>
+</body>
+</html>
